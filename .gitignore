@@ -1,0 +1,16 @@
+build/
+bin/
+obj/
+
+CMakeFiles/
+CMakeCache.txt
+*.cmake
+
+
+.vscode/
+
+src/main
+src/*.a
+src/*.so
+src/*.exe
+*.ini
