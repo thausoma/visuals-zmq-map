@@ -89,7 +89,7 @@ int main(int argc, char *argv[]) {
 
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    //io.ConfigFlags |= ImGuiConfigFlags_DockingEnable; // функция прилипания окон. не особо важная деталь, но ломается из - за того, что сабмодуль на своей главной ветке без этой фичи.
 
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
     ImGui_ImplOpenGL3_Init("#version 330");
@@ -110,7 +110,7 @@ int main(int argc, char *argv[]) {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
-        ImGui::DockSpaceOverViewport(0, nullptr, ImGuiDockNodeFlags_None);
+        //ImGui::DockSpaceOverViewport(0, nullptr, ImGuiDockNodeFlags_None); // та же самая ситуация с прилипанием окон. после обновления сабмодуля поломался функционал, однако можно обойтись и без него
 
         {
             static int counter = 0;

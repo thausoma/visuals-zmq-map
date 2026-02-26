@@ -6,6 +6,7 @@ CMakeFiles/
 CMakeCache.txt
 *.cmake
 
+release_build/
 
 .vscode/
 
