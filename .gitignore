@@ -10,6 +10,7 @@ release_build/
 
 .vscode/
 
+Makefile
 src/Makefile
 src/main
 src/*.a
