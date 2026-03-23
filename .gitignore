@@ -5,6 +5,7 @@ obj/
 CMakeFiles/
 CMakeCache.txt
 *.cmake
+*.json
 
 release_build/
 
