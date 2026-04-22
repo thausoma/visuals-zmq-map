@@ -1,0 +1,17 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: sibguti_project_db
+    restart: always
+    environment:
+      POSTGRES_USER: thausoma
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: mobile_monitor
+    ports:
+      - "5533:5432"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

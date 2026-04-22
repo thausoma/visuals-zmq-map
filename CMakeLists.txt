@@ -12,10 +12,16 @@ find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(Threads REQUIRED)
 
+find_package(PostgreSQL REQUIRED)
+
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(ZMQ REQUIRED libzmq)
 
-include_directories(${INCLUDE_DIR} ${SDL2_INCLUDE_DIRS} ${ZMQ_INCLUDE_DIRS})
+include_directories(${INCLUDE_DIR} ${SDL2_INCLUDE_DIRS} ${ZMQ_INCLUDE_DIRS} ${PostgreSQL_INCLUDE_DIRS})
+
+set(SKIP_PQXX_INSTALL ON CACHE BOOL "" FORCE)
+set(SKIP_PQXX_TESTS ON CACHE BOOL "" FORCE)
+add_subdirectory(${THIRD_PARTY_DIR}/libpqxx)
 
 add_library(imgui STATIC
     ${THIRD_PARTY_DIR}/imgui/imgui.cpp
@@ -43,6 +49,8 @@ add_executable(main ${SRC_DIR}/main.cpp)
 target_link_libraries(main PRIVATE 
     imgui 
     implot 
+    pqxx
+    ${PostgreSQL_LIBRARIES} 
     ${SDL2_LIBRARIES} 
     ${OPENGL_LIBRARIES} 
     ${GLEW_LIBRARIES}
