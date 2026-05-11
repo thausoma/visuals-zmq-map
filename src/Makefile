@@ -65,6 +65,26 @@ CMAKE_BINARY_DIR = /home/kirill/Desktop/visuals/src
 #=============================================================================
 # Targets provided globally by CMake.
 
+# Special rule for the target package
+package: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Run CPack packaging tool..."
+	/usr/bin/cpack --config ./CPackConfig.cmake
+.PHONY : package
+
+# Special rule for the target package
+package/fast: package
+.PHONY : package/fast
+
+# Special rule for the target package_source
+package_source:
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Run CPack packaging tool for source..."
+	/usr/bin/cpack --config ./CPackSourceConfig.cmake /home/kirill/Desktop/visuals/src/CPackSourceConfig.cmake
+.PHONY : package_source
+
+# Special rule for the target package_source
+package_source/fast: package_source
+.PHONY : package_source/fast
+
 # Special rule for the target edit_cache
 edit_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "No interactive CMake dialog available..."
@@ -84,6 +104,51 @@ rebuild_cache:
 # Special rule for the target rebuild_cache
 rebuild_cache/fast: rebuild_cache
 .PHONY : rebuild_cache/fast
+
+# Special rule for the target list_install_components
+list_install_components:
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Available install components are: \"Unspecified\""
+.PHONY : list_install_components
+
+# Special rule for the target list_install_components
+list_install_components/fast: list_install_components
+.PHONY : list_install_components/fast
+
+# Special rule for the target install
+install: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Install the project..."
+	/usr/bin/cmake -P cmake_install.cmake
+.PHONY : install
+
+# Special rule for the target install
+install/fast: preinstall/fast
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Install the project..."
+	/usr/bin/cmake -P cmake_install.cmake
+.PHONY : install/fast
+
+# Special rule for the target install/local
+install/local: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Installing only the local directory..."
+	/usr/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+.PHONY : install/local
+
+# Special rule for the target install/local
+install/local/fast: preinstall/fast
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Installing only the local directory..."
+	/usr/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+.PHONY : install/local/fast
+
+# Special rule for the target install/strip
+install/strip: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Installing the project stripped..."
+	/usr/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
+.PHONY : install/strip
+
+# Special rule for the target install/strip
+install/strip/fast: preinstall/fast
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Installing the project stripped..."
+	/usr/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
+.PHONY : install/strip/fast
 
 # The main all target
 all: cmake_check_build_system
@@ -154,6 +219,176 @@ main: cmake_check_build_system
 main/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/build
 .PHONY : main/fast
+
+#=============================================================================
+# Target rules for targets named pqxx
+
+# Build rule for target.
+pqxx: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 pqxx
+.PHONY : pqxx
+
+# fast build rule for target.
+pqxx/fast:
+	$(MAKE) $(MAKESILENT) -f external/libpqxx/src/CMakeFiles/pqxx.dir/build.make external/libpqxx/src/CMakeFiles/pqxx.dir/build
+.PHONY : pqxx/fast
+
+#=============================================================================
+# Target rules for targets named runner
+
+# Build rule for target.
+runner: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 runner
+.PHONY : runner
+
+# fast build rule for target.
+runner/fast:
+	$(MAKE) $(MAKESILENT) -f external/libpqxx/test/CMakeFiles/runner.dir/build.make external/libpqxx/test/CMakeFiles/runner.dir/build
+.PHONY : runner/fast
+
+Database.o: Database.cpp.o
+.PHONY : Database.o
+
+# target to build an object file
+Database.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/Database.cpp.o
+.PHONY : Database.cpp.o
+
+Database.i: Database.cpp.i
+.PHONY : Database.i
+
+# target to preprocess a source file
+Database.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/Database.cpp.i
+.PHONY : Database.cpp.i
+
+Database.s: Database.cpp.s
+.PHONY : Database.s
+
+# target to generate assembly for a file
+Database.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/Database.cpp.s
+.PHONY : Database.cpp.s
+
+Map.o: Map.cpp.o
+.PHONY : Map.o
+
+# target to build an object file
+Map.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/Map.cpp.o
+.PHONY : Map.cpp.o
+
+Map.i: Map.cpp.i
+.PHONY : Map.i
+
+# target to preprocess a source file
+Map.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/Map.cpp.i
+.PHONY : Map.cpp.i
+
+Map.s: Map.cpp.s
+.PHONY : Map.s
+
+# target to generate assembly for a file
+Map.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/Map.cpp.s
+.PHONY : Map.cpp.s
+
+Network.o: Network.cpp.o
+.PHONY : Network.o
+
+# target to build an object file
+Network.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/Network.cpp.o
+.PHONY : Network.cpp.o
+
+Network.i: Network.cpp.i
+.PHONY : Network.i
+
+# target to preprocess a source file
+Network.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/Network.cpp.i
+.PHONY : Network.cpp.i
+
+Network.s: Network.cpp.s
+.PHONY : Network.s
+
+# target to generate assembly for a file
+Network.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/Network.cpp.s
+.PHONY : Network.cpp.s
+
+Parser.o: Parser.cpp.o
+.PHONY : Parser.o
+
+# target to build an object file
+Parser.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/Parser.cpp.o
+.PHONY : Parser.cpp.o
+
+Parser.i: Parser.cpp.i
+.PHONY : Parser.i
+
+# target to preprocess a source file
+Parser.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/Parser.cpp.i
+.PHONY : Parser.cpp.i
+
+Parser.s: Parser.cpp.s
+.PHONY : Parser.s
+
+# target to generate assembly for a file
+Parser.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/Parser.cpp.s
+.PHONY : Parser.cpp.s
+
+TelemetryData.o: TelemetryData.cpp.o
+.PHONY : TelemetryData.o
+
+# target to build an object file
+TelemetryData.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/TelemetryData.cpp.o
+.PHONY : TelemetryData.cpp.o
+
+TelemetryData.i: TelemetryData.cpp.i
+.PHONY : TelemetryData.i
+
+# target to preprocess a source file
+TelemetryData.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/TelemetryData.cpp.i
+.PHONY : TelemetryData.cpp.i
+
+TelemetryData.s: TelemetryData.cpp.s
+.PHONY : TelemetryData.s
+
+# target to generate assembly for a file
+TelemetryData.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/TelemetryData.cpp.s
+.PHONY : TelemetryData.cpp.s
+
+UI.o: UI.cpp.o
+.PHONY : UI.o
+
+# target to build an object file
+UI.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/UI.cpp.o
+.PHONY : UI.cpp.o
+
+UI.i: UI.cpp.i
+.PHONY : UI.i
+
+# target to preprocess a source file
+UI.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/UI.cpp.i
+.PHONY : UI.cpp.i
+
+UI.s: UI.cpp.s
+.PHONY : UI.s
+
+# target to generate assembly for a file
+UI.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/UI.cpp.s
+.PHONY : UI.cpp.s
 
 external/imgui/backends/imgui_impl_opengl3.o: external/imgui/backends/imgui_impl_opengl3.cpp.o
 .PHONY : external/imgui/backends/imgui_impl_opengl3.o
@@ -426,10 +661,36 @@ help:
 	@echo "... clean"
 	@echo "... depend"
 	@echo "... edit_cache"
+	@echo "... install"
+	@echo "... install/local"
+	@echo "... install/strip"
+	@echo "... list_install_components"
+	@echo "... package"
+	@echo "... package_source"
 	@echo "... rebuild_cache"
 	@echo "... imgui"
 	@echo "... implot"
 	@echo "... main"
+	@echo "... pqxx"
+	@echo "... runner"
+	@echo "... Database.o"
+	@echo "... Database.i"
+	@echo "... Database.s"
+	@echo "... Map.o"
+	@echo "... Map.i"
+	@echo "... Map.s"
+	@echo "... Network.o"
+	@echo "... Network.i"
+	@echo "... Network.s"
+	@echo "... Parser.o"
+	@echo "... Parser.i"
+	@echo "... Parser.s"
+	@echo "... TelemetryData.o"
+	@echo "... TelemetryData.i"
+	@echo "... TelemetryData.s"
+	@echo "... UI.o"
+	@echo "... UI.i"
+	@echo "... UI.s"
 	@echo "... external/imgui/backends/imgui_impl_opengl3.o"
 	@echo "... external/imgui/backends/imgui_impl_opengl3.i"
 	@echo "... external/imgui/backends/imgui_impl_opengl3.s"

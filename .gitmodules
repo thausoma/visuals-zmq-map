@@ -14,3 +14,6 @@
 [submodule "external/libpqxx"]
 	path = external/libpqxx
 	url = https://github.com/jtv/libpqxx.git
+[submodule "external/stb"]
+	path = external/stb
+	url = https://github.com/nothings/stb.git
