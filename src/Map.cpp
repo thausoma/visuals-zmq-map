@@ -32,13 +32,13 @@ double tiley2lat(int y, int z) {
     return 180.0 / M_PI * atan(0.5 * (exp(n) - exp(-n)));
 }
 
-double calculate_distance(double lat1, double lon1, double lat2, double lon2) { //вычисление расстояния меж точками
+double calculate_distance(double lat1, double lon1, double lat2, double lon2) {
     double dy = (lat2 - lat1) * 111139.0;
     double dx = (lon2 - lon1) * 111139.0 * cos(lat1 * M_PI / 180.0);
     return sqrt(dx * dx + dy * dy);
 }
 
-GLuint LoadTexture(const char* filename) { // отгрузка в видеопамять
+GLuint LoadTexture(const char* filename) {
     int width, height, channels;
     unsigned char* data = stbi_load(filename, &width, &height, &channels, 4);
     if (!data) return 0;
@@ -57,7 +57,7 @@ GLuint LoadTexture(const char* filename) { // отгрузка в видеопа
 }
 
 
-void thread_loader(int z, int x, int y) { // поток со скачкой тайлов
+void thread_loader(int z, int x, int y) {
     string dir = "tiles/" + to_string(z) + "/" + to_string(x);
     filesystem::create_directories(dir); 
     string path = dir + "/" + to_string(y) + ".png";
@@ -117,7 +117,7 @@ void render_map_window() {
         }
 
 
-        if (limits.X.Min > -180 && limits.X.Max < 180 && limits.Y.Min > -90 && limits.Y.Max < 90) { //расчёт отрисовка тайлов
+        if (limits.X.Min > -180 && limits.X.Max < 180 && limits.Y.Min > -90 && limits.Y.Max < 90) {
             int x_start = (int)floor(lon2tile(limits.X.Min, zoom));
             int x_end   = (int)floor(lon2tile(limits.X.Max, zoom));
             int y_start = (int)floor(lat2tile(limits.Y.Max, zoom)); 

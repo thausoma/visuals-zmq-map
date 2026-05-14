@@ -16,11 +16,12 @@ struct TelemetryData {
     int rsrp = 0;
     std::string type = "";
     std::string raw = "";
-    std::mutex mtx; 
-    bool use_sql_storage = false;
+    std::mutex mtx;
 
-    std::map<std::string, CellHistory> cell_logs; 
-    
+    bool db_connected = false;
+    std::string data_source = "None";
+
+    std::map<std::string, CellHistory> cell_logs;
     std::vector<double> history_lat;
     std::vector<double> history_lon;
     std::vector<double> history_time;
@@ -29,6 +30,16 @@ struct TelemetryData {
     float view_min_time = 0;
     float view_max_time = 100;
     float max_recorded_time = 100;
+
+    void clear_all() {
+        cell_logs.clear();
+        history_lat.clear();
+        history_lon.clear();
+        history_time.clear();
+        base_timestamp = 0;
+        max_recorded_time = 0;
+        raw = "";
+    }
 };
 extern TelemetryData g_data;
 

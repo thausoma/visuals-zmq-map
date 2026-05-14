@@ -3,10 +3,9 @@
 
 #include <string>
 
-void load_history();
-
+void init_database();
+void sync_all_data();
+void save_packet(const std::string& raw_json);
 void migrate_json_to_sql();
-
-void load_from_sql();
 
 #endif

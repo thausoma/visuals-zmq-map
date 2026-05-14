@@ -4,11 +4,14 @@
 #include <GL/glew.h>
 #include <SDL2/SDL.h>
 #include <thread>
+#include <mutex>
 #include "Map.h"
 #include "backends/imgui_impl_opengl3.h"
 #include "backends/imgui_impl_sdl2.h"
 #include "imgui.h"
 #include "implot.h"
+
+using namespace std;
 
 void ui_loop() {
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER);
@@ -33,30 +36,37 @@ void ui_loop() {
 
         ImGui::Begin("Smartphone Data");
         {
-            std::lock_guard<std::mutex> lock(g_data.mtx);
+            lock_guard<mutex> lock(g_data.mtx);
+
+            if (g_data.db_connected) {
+                ImGui::TextColored(ImVec4(0, 1, 0, 1), "● DATABASE: ONLINE");
+            } else {
+                ImGui::TextColored(ImVec4(1, 0, 0, 1), "○ DATABASE: OFFLINE");
+                ImGui::SameLine();
+                if (ImGui::SmallButton("Retry Connect")) {
+                    thread([]() { init_database(); }).detach();
+                }
+            }
+            ImGui::Text("Source: %s", g_data.data_source.c_str());
+            ImGui::Separator();
+
             ImGui::Text("Latitude:  %.6f", g_data.lat);
             ImGui::Text("Longitude: %.6f", g_data.lon);
             ImGui::Text("Net Type:  %s", g_data.type.c_str());
             ImGui::Text("RSRP:      %d dBm", g_data.rsrp);
-            
+
             ImGui::Separator();
             ImGui::Text("Time Range Filter (seconds from start):");
             ImGui::SliderFloat("Start Time", &g_data.view_min_time, 0.0f, g_data.max_recorded_time);
             ImGui::SliderFloat("End Time",   &g_data.view_max_time, 0.0f, g_data.max_recorded_time);
 
-            ImGui::Separator();
-            if (ImGui::Button("Migrate JSON -> PostgreSQL", ImVec2(-1, 40))) {
-                std::thread(migrate_json_to_sql).detach();
-            }
-
-            if (g_data.use_sql_storage) {
-                ImGui::TextColored(ImVec4(0, 1, 0, 1), "Storage: PostgreSQL Active");
-            } else {
-                ImGui::TextColored(ImVec4(1, 1, 0, 1), "Storage: Local JSON (Legacy)");
-            }
-            
             if (g_data.view_min_time > g_data.view_max_time) {
                 g_data.view_min_time = g_data.view_max_time;
+            }
+
+            ImGui::Separator();
+            if (ImGui::Button("Migrate JSON -> PostgreSQL", ImVec2(-1, 40))) {
+                thread(migrate_json_to_sql).detach();
             }
 
             ImGui::Separator();
@@ -75,7 +85,7 @@ void ui_loop() {
             ImPlot::SetupAxes("Time (sec)", "RSRP (dBm)");
             ImPlot::SetupAxisLimits(ImAxis_Y1, -130, -50, ImPlotCond_Once);
 
-            std::lock_guard<std::mutex> lock(g_data.mtx);
+            lock_guard<mutex> lock(g_data.mtx);
             for (auto const& [label, hist] : g_data.cell_logs) {
                 if (!hist.x_time.empty()) {
                     ImPlot::PlotLine(label.c_str(), hist.x_time.data(), hist.y_rsrp.data(), (int)hist.x_time.size());

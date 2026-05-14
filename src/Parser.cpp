@@ -30,7 +30,6 @@ void parse_json_to_data(string raw) {
     g_data.type = find_val(raw, "Net Type");
     g_data.rsrp = stoi(find_val(raw, "RSRP"));
 
-
     string time_str = find_val(raw, "Current Time");
     if (time_str == "0") return;
     

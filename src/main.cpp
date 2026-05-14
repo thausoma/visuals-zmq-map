@@ -4,9 +4,11 @@
 #include "UI.h"
 
 int main(int argc, char *argv[]) {
-    load_history();
+    init_database();
+
     std::thread network_thread(zmq_server);
-    network_thread.detach(); 
+    network_thread.detach();
+
     ui_loop();
     return 0;
 }

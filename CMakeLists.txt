@@ -63,6 +63,7 @@ add_executable(main ${PROJECT_SOURCES})
 target_include_directories(main PRIVATE 
     ${SRC_DIR}
     ${THIRD_PARTY_DIR}/stb
+    ${THIRD_PARTY_DIR}/json/single_include
     ${SDL2_INCLUDE_DIRS} 
     ${ZMQ_INCLUDE_DIRS} 
     ${PostgreSQL_INCLUDE_DIRS}
