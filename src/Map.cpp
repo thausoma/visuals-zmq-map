@@ -1,5 +1,6 @@
 #include "Map.h"
 #include "TelemetryData.h"
+#include "Heatmap.h"
 
 #include <imgui.h>
 #include <implot.h>
@@ -23,6 +24,7 @@
 using namespace std;
 
 static unordered_map<string, GLuint> tile_cache;
+
 
 double lon2tile(double lon, int z) { return (lon + 180.0) / 360.0 * (1 << z); }
 double lat2tile(double lat, int z) { return (1.0 - asinh(tan(lat * M_PI / 180.0)) / M_PI) / 2.0 * (1 << z); }
@@ -56,7 +58,6 @@ GLuint LoadTexture(const char* filename) {
     return texture;
 }
 
-
 void thread_loader(int z, int x, int y) {
     string dir = "tiles/" + to_string(z) + "/" + to_string(x);
     filesystem::create_directories(dir); 
@@ -81,7 +82,6 @@ void thread_loader(int z, int x, int y) {
         curl_easy_cleanup(curl);
     }
 }
-
 
 void render_map_window() {
     ImGui::Begin("Live Map View");
@@ -115,7 +115,6 @@ void render_map_window() {
             }
             tile_cache.clear();
         }
-
 
         if (limits.X.Min > -180 && limits.X.Max < 180 && limits.Y.Min > -90 && limits.Y.Max < 90) {
             int x_start = (int)floor(lon2tile(limits.X.Min, zoom));
@@ -161,6 +160,58 @@ void render_map_window() {
         }
 
         {
+            static bool was_ready = false;
+            if (g_data.heatmap_ready != was_ready) {
+                cout << "[MAP] heatmap_ready changed: " << was_ready << " -> " << g_data.heatmap_ready << endl;
+                was_ready = g_data.heatmap_ready;
+            }
+        }
+
+        if (g_data.heatmap_ready) {
+            cout << "[MAP] Checking heatmap texture. g_heatmap_texture=" << g_heatmap_texture << endl;
+            
+            static bool heatmap_loaded = false;
+            static string last_earfcn;
+            static string last_criterion;
+
+            if (!heatmap_loaded || last_earfcn != g_data.heatmap_earfcn || last_criterion != g_data.heatmap_criterion) {
+                cout << "[MAP] Reloading heatmap texture..." << endl;
+                reload_heatmap_texture();
+                heatmap_loaded = true;
+                last_earfcn = g_data.heatmap_earfcn;
+                last_criterion = g_data.heatmap_criterion;
+                cout << "[MAP] Texture after reload: " << g_heatmap_texture << endl;
+            }
+
+            if (g_heatmap_texture > 0) {
+                double h_min_lon = g_data.heatmap_min_lon;
+                double h_max_lon = g_data.heatmap_max_lon;
+                double h_min_lat = g_data.heatmap_min_lat;
+                double h_max_lat = g_data.heatmap_max_lat;
+
+                cout << "[MAP] Drawing heatmap. BBOX: lon[" << h_min_lon << "," << h_max_lon 
+                     << "] lat[" << h_min_lat << "," << h_max_lat << "]" << endl;
+                cout << "[MAP] Plot limits: X[" << limits.X.Min << "," << limits.X.Max 
+                     << "] Y[" << limits.Y.Min << "," << limits.Y.Max << "]" << endl;
+
+                if (h_min_lon < limits.X.Max && h_max_lon > limits.X.Min &&
+                    h_min_lat < limits.Y.Max && h_max_lat > limits.Y.Min) {
+                    
+                    cout << "[MAP] Heatmap VISIBLE in current view!" << endl;
+                    ImPlot::PlotImage("##heatmap", (void*)(intptr_t)g_heatmap_texture,
+                                      ImPlotPoint(h_min_lon, h_min_lat),
+                                      ImPlotPoint(h_max_lon, h_max_lat));
+                } else {
+                    cout << "[MAP] Heatmap OUTSIDE current view" << endl;
+                }
+            } else {
+                cout << "[MAP] Heatmap texture is 0!" << endl;
+            }
+        } else {
+            cout << "[MAP] heatmap_ready is false" << endl;
+        }
+
+        {
             std::lock_guard<std::mutex> lock(g_data.mtx);
             
             static std::vector<double> filtered_x;
@@ -187,14 +238,12 @@ void render_map_window() {
                     for (size_t i = 0; i < filtered_x.size() - 1; ++i) {
                         double delta_t = filtered_t[i+1] - filtered_t[i];
                         
-                        if (delta_t <= 25.0 && delta_t > 0) { // 25 секунд (были ли пакеты)
-                            
+                        if (delta_t <= 25.0 && delta_t > 0) {
                             double dist = calculate_distance(filtered_y[i], filtered_x[i], 
                                                            filtered_y[i+1], filtered_x[i+1]);
                             double velocity = dist / delta_t;
 
-                            
-                            if (velocity < 160.0) { // 160 м/с ~ 380 км/ч
+                            if (velocity < 160.0) {
                                 ImVec2 p1 = ImPlot::PlotToPixels(ImPlotPoint(filtered_x[i], filtered_y[i]));
                                 ImVec2 p2 = ImPlot::PlotToPixels(ImPlotPoint(filtered_x[i+1], filtered_y[i+1]));
                                 draw_list->AddLine(p1, p2, IM_COL32(50, 100, 255, 200), 3.0f);

@@ -56,6 +56,7 @@ set(PROJECT_SOURCES
     ${SRC_DIR}/Network.cpp
     ${SRC_DIR}/UI.cpp
     ${SRC_DIR}/Map.cpp
+    ${SRC_DIR}/Heatmap.cpp
 )
 
 add_executable(main ${PROJECT_SOURCES})

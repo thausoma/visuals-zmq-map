@@ -1,11 +1,12 @@
 #include "UI.h"
 #include "TelemetryData.h"
 #include "Database.h"
+#include "Map.h"
+#include "Heatmap.h"
 #include <GL/glew.h>
 #include <SDL2/SDL.h>
 #include <thread>
 #include <mutex>
-#include "Map.h"
 #include "backends/imgui_impl_opengl3.h"
 #include "backends/imgui_impl_sdl2.h"
 #include "imgui.h"
@@ -17,6 +18,7 @@ void ui_loop() {
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER);
     SDL_Window* window = SDL_CreateWindow("Telemetry Monitor", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 800, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
     SDL_GLContext gl_context = SDL_GL_CreateContext(window);
+    glewInit();
 
     ImGui::CreateContext();
     ImPlot::CreateContext();
@@ -34,17 +36,17 @@ void ui_loop() {
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
 
-        ImGui::Begin("Smartphone Data");
+        ImGui::Begin("Smartphone Data & Heatmap");
         {
-            lock_guard<mutex> lock(g_data.mtx);
+            std::lock_guard<std::mutex> lock(g_data.mtx);
 
             if (g_data.db_connected) {
                 ImGui::TextColored(ImVec4(0, 1, 0, 1), "● DATABASE: ONLINE");
             } else {
                 ImGui::TextColored(ImVec4(1, 0, 0, 1), "○ DATABASE: OFFLINE");
                 ImGui::SameLine();
-                if (ImGui::SmallButton("Retry Connect")) {
-                    thread([]() { init_database(); }).detach();
+                if (ImGui::SmallButton("Retry")) {
+                    thread([](){ init_database(); }).detach();
                 }
             }
             ImGui::Text("Source: %s", g_data.data_source.c_str());
@@ -56,17 +58,38 @@ void ui_loop() {
             ImGui::Text("RSRP:      %d dBm", g_data.rsrp);
 
             ImGui::Separator();
-            ImGui::Text("Time Range Filter (seconds from start):");
-            ImGui::SliderFloat("Start Time", &g_data.view_min_time, 0.0f, g_data.max_recorded_time);
-            ImGui::SliderFloat("End Time",   &g_data.view_max_time, 0.0f, g_data.max_recorded_time);
-
-            if (g_data.view_min_time > g_data.view_max_time) {
-                g_data.view_min_time = g_data.view_max_time;
-            }
+            ImGui::Text("Time Range:");
+            ImGui::SliderFloat("Start", &g_data.view_min_time, 0.0f, g_data.max_recorded_time);
+            ImGui::SliderFloat("End",   &g_data.view_max_time, 0.0f, g_data.max_recorded_time);
+            if (g_data.view_min_time > g_data.view_max_time) g_data.view_min_time = g_data.view_max_time;
 
             ImGui::Separator();
             if (ImGui::Button("Migrate JSON -> PostgreSQL", ImVec2(-1, 40))) {
                 thread(migrate_json_to_sql).detach();
+            }
+
+            ImGui::Separator();
+            ImGui::Text("Heatmap Generator (IDW)");
+
+            static int selected_criterion = 0;
+            const char* criteria[] = { "RSRP", "RSRQ", "RSSI", "Altitude" };
+            ImGui::Combo("Criterion", &selected_criterion, criteria, IM_ARRAYSIZE(criteria));
+
+            static char target_earfcn[32] = "38100";
+            ImGui::InputText("EARFCN", target_earfcn, IM_ARRAYSIZE(target_earfcn));
+
+            if (ImGui::Button("Generate Heatmap", ImVec2(-1, 30))) {
+                if (g_data.db_connected) {
+                    extern const string DB_CONN;
+                    generate_heatmap_thread(DB_CONN, criteria[selected_criterion], string(target_earfcn));
+                } else {
+                    ImGui::TextColored(ImVec4(1, 0, 0, 1), "ERROR: DB offline!");
+                }
+            }
+
+            if (g_data.heatmap_ready) {
+                ImGui::TextColored(ImVec4(0, 1, 0, 1), "Heatmap: READY (%s/%s)",
+                    g_data.heatmap_criterion.c_str(), g_data.heatmap_earfcn.c_str());
             }
 
             ImGui::Separator();
@@ -81,11 +104,11 @@ void ui_loop() {
 
         ImGui::Begin("Signal Level (RSRP) History");
         if (ImPlot::BeginPlot("RSRP over Time", ImVec2(-1, -1))) {
-            ImPlot::SetupAxisLimits(ImAxis_X1, (double)g_data.view_min_time, (double)g_data.view_max_time, ImPlotCond_Always);
             ImPlot::SetupAxes("Time (sec)", "RSRP (dBm)");
+            ImPlot::SetupAxisLimits(ImAxis_X1, (double)g_data.view_min_time, (double)g_data.view_max_time, ImPlotCond_Always);
             ImPlot::SetupAxisLimits(ImAxis_Y1, -130, -50, ImPlotCond_Once);
 
-            lock_guard<mutex> lock(g_data.mtx);
+            std::lock_guard<std::mutex> lock(g_data.mtx);
             for (auto const& [label, hist] : g_data.cell_logs) {
                 if (!hist.x_time.empty()) {
                     ImPlot::PlotLine(label.c_str(), hist.x_time.data(), hist.y_rsrp.data(), (int)hist.x_time.size());

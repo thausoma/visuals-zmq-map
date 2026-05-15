@@ -26,6 +26,11 @@ void zmq_server() {
             string raw(static_cast<char*>(msg.data()), msg.size());
 
             if (!raw.empty()) {
+                cout << "[DEBUG] Packet received, length=" << raw.length() << endl;
+                string lat = find_val(raw, "Latitude");
+                string lon = find_val(raw, "Longitude");
+                cout << "[DEBUG] Parsed Lat=" << lat << ", Lon=" << lon << endl;
+
                 save_packet(raw);
 
                 lock_guard<mutex> lock(g_data.mtx);
