@@ -5,7 +5,4 @@
 
 void render_map_window();
 
-extern GLuint g_heatmap_texture;
-void reload_heatmap_texture();
-
 #endif

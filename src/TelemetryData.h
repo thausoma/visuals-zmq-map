@@ -34,12 +34,12 @@ struct TelemetryData {
     float max_recorded_time = 100;
     double heatmap_min_lat = 0, heatmap_max_lat = 0;
     double heatmap_min_lon = 0, heatmap_max_lon = 0;
+    int heatmap_zoom = 15;
     bool heatmap_ready = false;
     std::string heatmap_earfcn = "";
     std::string heatmap_criterion = "";
 
 
-    
     void clear_all() {
         cell_logs.clear();
         history_lat.clear();

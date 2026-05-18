@@ -24,7 +24,8 @@
 using namespace std;
 
 static unordered_map<string, GLuint> tile_cache;
-
+static unordered_map<string, GLuint> heat_tile_cache;
+static mutex heat_cache_mtx;
 
 double lon2tile(double lon, int z) { return (lon + 180.0) / 360.0 * (1 << z); }
 double lat2tile(double lat, int z) { return (1.0 - asinh(tan(lat * M_PI / 180.0)) / M_PI) / 2.0 * (1 << z); }
@@ -72,7 +73,7 @@ void thread_loader(int z, int x, int y) {
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
             curl_easy_setopt(curl, CURLOPT_USERAGENT, "TelemetryMonitor/1.0 thausoma");
             curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-            
+
             CURLcode res = curl_easy_perform(curl);
             if (res != CURLE_OK) {
                 cerr << "[MAP] Curl failed: " << curl_easy_strerror(res) << endl;
@@ -97,7 +98,7 @@ void render_map_window() {
         ImPlot::SetupAxesLimits(82.8, 83.1, 54.9, 55.1, ImGuiCond_FirstUseEver);
 
         ImPlotRect limits = ImPlot::GetPlotLimits();
-        
+
         int zoom = 15;
         double width = abs(limits.X.Max - limits.X.Min);
         if (width > 0) {
@@ -114,6 +115,17 @@ void render_map_window() {
                 }
             }
             tile_cache.clear();
+        }
+
+        if (heat_tile_cache.size() > 500) {
+            lock_guard<mutex> lock(heat_cache_mtx);
+            for (auto const& [path, texID] : heat_tile_cache) {
+                if (texID > 0) {
+                    GLuint id = texID;
+                    glDeleteTextures(1, &id);
+                }
+            }
+            heat_tile_cache.clear();
         }
 
         if (limits.X.Min > -180 && limits.X.Max < 180 && limits.Y.Min > -90 && limits.Y.Max < 90) {
@@ -144,15 +156,45 @@ void render_map_window() {
                             }
                         }
 
+                        double l_lon = tilex2lon(x, zoom);
+                        double r_lon = tilex2lon(x + 1, zoom);
+                        double b_lat = tiley2lat(y + 1, zoom);
+                        double t_lat = tiley2lat(y, zoom);
+
                         if (texID > 0) {
-                            double l_lon = tilex2lon(x, zoom);
-                            double r_lon = tilex2lon(x + 1, zoom);
-                            double b_lat = tiley2lat(y + 1, zoom);
-                            double t_lat = tiley2lat(y, zoom);
-                            
                             ImPlot::PlotImage(path.c_str(), (void*)(intptr_t)texID, 
                                               ImPlotPoint(l_lon, b_lat), 
                                               ImPlotPoint(r_lon, t_lat));
+                        }
+
+                        if (g_data.heatmap_ready && zoom == g_data.heatmap_zoom) {
+                            string heat_path = "build/" + to_string(zoom) + "/" + to_string(x) + "/" + to_string(y) + ".png";
+                            GLuint heat_texID = 0;
+
+                            {
+                                lock_guard<mutex> lock(heat_cache_mtx);
+                                if (heat_tile_cache.count(heat_path)) {
+                                    heat_texID = heat_tile_cache[heat_path];
+                                    if (heat_texID == 0 && filesystem::exists(heat_path) && filesystem::file_size(heat_path) > 0) {
+                                        heat_texID = LoadTexture(heat_path.c_str());
+                                        heat_tile_cache[heat_path] = heat_texID;
+                                    }
+                                } else {
+                                    if (filesystem::exists(heat_path) && filesystem::file_size(heat_path) > 0) {
+                                        heat_texID = LoadTexture(heat_path.c_str());
+                                        heat_tile_cache[heat_path] = heat_texID;
+                                    } else {
+                                        heat_tile_cache[heat_path] = 0;
+                                    }
+                                }
+                            }
+
+                            if (heat_texID > 0) {
+                                ImPlot::PlotImage(("##heat_" + to_string(x) + "_" + to_string(y)).c_str(), 
+                                                  (void*)(intptr_t)heat_texID,
+                                                  ImPlotPoint(l_lon, b_lat), 
+                                                  ImPlotPoint(r_lon, t_lat));
+                            }
                         }
                     }
                 }
@@ -160,64 +202,12 @@ void render_map_window() {
         }
 
         {
-            static bool was_ready = false;
-            if (g_data.heatmap_ready != was_ready) {
-                cout << "[MAP] heatmap_ready changed: " << was_ready << " -> " << g_data.heatmap_ready << endl;
-                was_ready = g_data.heatmap_ready;
-            }
-        }
-
-        if (g_data.heatmap_ready) {
-            cout << "[MAP] Checking heatmap texture. g_heatmap_texture=" << g_heatmap_texture << endl;
-            
-            static bool heatmap_loaded = false;
-            static string last_earfcn;
-            static string last_criterion;
-
-            if (!heatmap_loaded || last_earfcn != g_data.heatmap_earfcn || last_criterion != g_data.heatmap_criterion) {
-                cout << "[MAP] Reloading heatmap texture..." << endl;
-                reload_heatmap_texture();
-                heatmap_loaded = true;
-                last_earfcn = g_data.heatmap_earfcn;
-                last_criterion = g_data.heatmap_criterion;
-                cout << "[MAP] Texture after reload: " << g_heatmap_texture << endl;
-            }
-
-            if (g_heatmap_texture > 0) {
-                double h_min_lon = g_data.heatmap_min_lon;
-                double h_max_lon = g_data.heatmap_max_lon;
-                double h_min_lat = g_data.heatmap_min_lat;
-                double h_max_lat = g_data.heatmap_max_lat;
-
-                cout << "[MAP] Drawing heatmap. BBOX: lon[" << h_min_lon << "," << h_max_lon 
-                     << "] lat[" << h_min_lat << "," << h_max_lat << "]" << endl;
-                cout << "[MAP] Plot limits: X[" << limits.X.Min << "," << limits.X.Max 
-                     << "] Y[" << limits.Y.Min << "," << limits.Y.Max << "]" << endl;
-
-                if (h_min_lon < limits.X.Max && h_max_lon > limits.X.Min &&
-                    h_min_lat < limits.Y.Max && h_max_lat > limits.Y.Min) {
-                    
-                    cout << "[MAP] Heatmap VISIBLE in current view!" << endl;
-                    ImPlot::PlotImage("##heatmap", (void*)(intptr_t)g_heatmap_texture,
-                                      ImPlotPoint(h_min_lon, h_min_lat),
-                                      ImPlotPoint(h_max_lon, h_max_lat));
-                } else {
-                    cout << "[MAP] Heatmap OUTSIDE current view" << endl;
-                }
-            } else {
-                cout << "[MAP] Heatmap texture is 0!" << endl;
-            }
-        } else {
-            cout << "[MAP] heatmap_ready is false" << endl;
-        }
-
-        {
             std::lock_guard<std::mutex> lock(g_data.mtx);
-            
+
             static std::vector<double> filtered_x;
             static std::vector<double> filtered_y;
             static std::vector<double> filtered_t;
-            
+
             filtered_x.clear();
             filtered_y.clear();
             filtered_t.clear();
@@ -237,7 +227,7 @@ void render_map_window() {
                 if (filtered_x.size() > 1) {
                     for (size_t i = 0; i < filtered_x.size() - 1; ++i) {
                         double delta_t = filtered_t[i+1] - filtered_t[i];
-                        
+
                         if (delta_t <= 25.0 && delta_t > 0) {
                             double dist = calculate_distance(filtered_y[i], filtered_x[i], 
                                                            filtered_y[i+1], filtered_x[i+1]);

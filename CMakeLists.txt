@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.14)
 project(visuals)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(THIRD_PARTY_DIR ${PROJECT_SOURCE_DIR}/external)
 set(SRC_DIR ${PROJECT_SOURCE_DIR}/src)
@@ -11,7 +13,6 @@ find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(Threads REQUIRED)
 find_package(PostgreSQL REQUIRED)
-
 find_package(CURL REQUIRED)
 
 find_package(PkgConfig REQUIRED)
@@ -47,7 +48,6 @@ target_include_directories(implot PUBLIC ${THIRD_PARTY_DIR}/implot)
 target_link_libraries(implot PRIVATE imgui)
 target_compile_options(implot PRIVATE -fPIC)
 
-
 set(PROJECT_SOURCES
     ${SRC_DIR}/main.cpp
     ${SRC_DIR}/TelemetryData.cpp
@@ -71,6 +71,11 @@ target_include_directories(main PRIVATE
     ${CURL_INCLUDE_DIRS}
 )
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS "9.0")
+    set(FS_LIB stdc++fs)
+else()
+    set(FS_LIB "")
+endif()
 
 target_link_libraries(main PRIVATE 
     imgui 
@@ -83,4 +88,5 @@ target_link_libraries(main PRIVATE
     ${ZMQ_LIBRARIES}
     ${CURL_LIBRARIES}
     Threads::Threads
+    ${FS_LIB}
 )
