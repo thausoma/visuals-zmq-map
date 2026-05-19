@@ -92,6 +92,8 @@ struct TelemetryData {
 extern TelemetryData g_data;
 ```
 
+![Схема архитектуры](schem.png)
+
 ---
 
 ## Ключевые компоненты

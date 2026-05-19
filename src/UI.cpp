@@ -27,7 +27,6 @@ void ui_loop() {
     ImGui::CreateContext();
     ImPlot::CreateContext();
 
-    // --- ПРИЯТНАЯ ТЁМНАЯ ТЕМА (только цвета интерфейса) ---
     {
         ImGuiStyle& style = ImGui::GetStyle();
         ImVec4* c = style.Colors;
@@ -83,7 +82,6 @@ void ui_loop() {
         style.WindowBorderSize  = 1.0f;
         style.FrameBorderSize   = 0.0f;
     }
-    // -----------------------------------------------------
 
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
     ImGui_ImplOpenGL3_Init("#version 330");
