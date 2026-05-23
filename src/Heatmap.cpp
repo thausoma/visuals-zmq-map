@@ -561,7 +561,3 @@ void generate_heatmap_thread(const string& db_conn, const string& criterion, con
     cfg.earfcn = earfcn;
     generate_heatmap_async(db_conn, cfg);
 }
-
-void reload_heatmap_texture() {
-    cout << "[HEATMAP] reload_heatmap_texture is deprecated, use tile system" << endl;
-}

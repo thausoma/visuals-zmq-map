@@ -112,9 +112,9 @@ void ui_loop() {
             std::lock_guard<std::mutex> lock(g_data.mtx);
 
             if (g_data.db_connected) {
-                ImGui::TextColored(ImVec4(0, 1, 0, 1), "● DATABASE: ONLINE");
+                ImGui::TextColored(ImVec4(0, 1, 0, 1), "DATABASE: ONLINE");
             } else {
-                ImGui::TextColored(ImVec4(1, 0, 0, 1), "○ DATABASE: OFFLINE");
+                ImGui::TextColored(ImVec4(1, 0, 0, 1), "DATABASE: OFFLINE");
                 ImGui::SameLine();
                 if (ImGui::SmallButton("Retry")) {
                     thread([](){ init_database(); }).detach();
@@ -306,7 +306,6 @@ void ui_loop() {
         ImGui::End();
 
         render_map_window();
-
         ImGui::Begin("Signal Level (RSRP) History");
         if (ImPlot::BeginPlot("RSRP over Time", ImVec2(-1, -1))) {
             ImPlot::SetupAxes("Time (sec)", "RSRP (dBm)");
@@ -315,8 +314,32 @@ void ui_loop() {
 
             std::lock_guard<std::mutex> lock(g_data.mtx);
             for (auto const& [label, hist] : g_data.cell_logs) {
-                if (!hist.x_time.empty()) {
-                    ImPlot::PlotLine(label.c_str(), hist.x_time.data(), hist.y_rsrp.data(), (int)hist.x_time.size());
+                if (hist.x_time.size() < 2) continue;
+                static std::vector<double> filt_x;
+                static std::vector<double> filt_y;
+                filt_x.clear();
+                filt_y.clear();
+
+                for (size_t i = 0; i < hist.x_time.size(); ++i) {
+                    double t = hist.x_time[i];
+                    if (t < g_data.view_min_time || t > g_data.view_max_time) continue;
+
+                    if (!filt_x.empty()) {
+                        double dt = t - filt_x.back();
+                        if (dt <= 0 || dt > 25.0) {
+                            if (filt_x.size() > 1) {
+                                ImPlot::PlotLine(label.c_str(), filt_x.data(), filt_y.data(), (int)filt_x.size());
+                            }
+                            filt_x.clear();
+                            filt_y.clear();
+                        }
+                    }
+                    filt_x.push_back(t);
+                    filt_y.push_back(hist.y_rsrp[i]);
+                }
+
+                if (filt_x.size() > 1) {
+                    ImPlot::PlotLine(label.c_str(), filt_x.data(), filt_y.data(), (int)filt_x.size());
                 }
             }
             ImPlot::EndPlot();
